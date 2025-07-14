@@ -1,0 +1,16 @@
+# ------------------------------------------------------------------
+# Dependencies for the Python Encryption Tool
+# ------------------------------------------------------------------
+#
+# To install all required packages automatically, run the following
+# command in your terminal in the same directory as this file:
+#
+# pip install -r requirements.txt
+#
+# ------------------------------------------------------------------
+
+# Core library for cryptographic functions (AES, Fernet, etc.)
+cryptography
+
+# Library for checking password strength
+zxcvbn-python
