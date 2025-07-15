@@ -9,8 +9,14 @@
 #
 # ------------------------------------------------------------------
 
-# Core library for cryptographic functions (AES, Fernet, etc.)
+# Core library for cryptographic functions
 cryptography
 
 # Library for checking password strength
 zxcvbn-python
+
+# Library for progress bars
+tqdm
+
+# Library for system utilities (CPU, RAM usage)
+psutil
