@@ -1,1 +1,8 @@
-__pycache__
+*
+./*
+*./
+!.gitignore
+!config.ini
+!README.md
+!requirements.txt
+!cryptography-tool.py
