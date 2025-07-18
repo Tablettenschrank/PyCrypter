@@ -10,6 +10,7 @@ import tempfile
 import time
 import multiprocessing
 import zipfile
+import subprocess # NEU
 from pathlib import Path
 from typing import Optional, Tuple, Any, Dict, List
 
@@ -49,14 +50,39 @@ from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 # --- Constants ---
 CHUNK_SIZE_KB_DEFAULT = 4096
+SPACE_BUFFER_MULTIPLIER = 1.05
 
 # --- Helper Functions ---
 def format_duration(seconds: float) -> str:
-    """Formats a duration in seconds into a human-readable string."""
     if seconds < 60:
         return f"{seconds:.2f} seconds"
     minutes, seconds = divmod(seconds, 60)
     return f"{int(minutes)} minute(s) and {seconds:.2f} seconds"
+def check_disk_space(required_size: int, destination_path: Path) -> bool:
+    try:
+        free_space = shutil.disk_usage(destination_path.anchor).free
+        if free_space < required_size:
+            print(f"❌ Error: Not enough disk space. Required: ~{required_size / 1e6:.2f} MB, Available: {free_space / 1e6:.2f} MB")
+            return False
+        return True
+    except FileNotFoundError:
+        print(f"❌ Error: Cannot check disk space. Path '{destination_path}' does not exist.")
+        return False
+def open_file_in_editor(file_path: Path) -> None:
+    """Opens a file with the system's default application for text files."""
+    print(f"Attempting to open '{file_path}' with the default system editor...")
+    try:
+        if sys.platform == "win32":
+            os.startfile(file_path)
+        elif sys.platform == "darwin":
+            subprocess.run(['open', file_path], check=True)
+        else: # Linux and other POSIX
+            subprocess.run(['xdg-open', file_path], check=True)
+        print("Editor launched. The script will continue after you close the editor.")
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        print(f"❌ Could not open the file. Please open '{file_path}' manually.")
+    except Exception as e:
+        print(f"❌ An unexpected error occurred: {e}")
 
 # --- Cryptography and Hash Logic ---
 def derive_key(password: str, salt: bytes, config: Dict, key_length: int = 32) -> bytes:
@@ -170,6 +196,9 @@ def worker_process_single_file(args: Tuple[str, str, str, Dict, bool]) -> None:
     process_single_file_main_thread(file_path, password, action, config, unpack)
 def process_single_file_main_thread(file_path: Path, password: str, action: str, config: Dict, unpack: bool = False) -> Optional[Path]:
     if action == 'encrypt':
+        required_size = int(file_path.stat().st_size * SPACE_BUFFER_MULTIPLIER)
+        if not check_disk_space(required_size, file_path.parent):
+            return None
         encrypted_path = encrypt_file_stream(file_path, password, config)
         if encrypted_path:
             print(f"✅ Encrypted successfully: {encrypted_path.name}")
@@ -204,8 +233,12 @@ def process_single_file_main_thread(file_path: Path, password: str, action: str,
     return None
 def batch_process_files(files_to_process: List[Path], password: str, action: str, config: Dict) -> None:
     start_time = time.time()
+    if action == 'encrypt':
+        total_required_size = int(sum(f.stat().st_size for f in files_to_process) * SPACE_BUFFER_MULTIPLIER)
+        if not check_disk_space(total_required_size, Path('.')):
+            print("Aborting batch operation due to insufficient disk space.")
+            return
     use_multiprocessing = config.get('enable_multiprocessing', 'no').lower() == 'yes'
-    use_ascii = config.get('progress_bar_style', 'unicode').lower() == 'ascii'
     if use_multiprocessing and TQDM_AVAILABLE:
         total_cores = os.cpu_count() or 1
         worker_count_config = int(config.get('worker_processes', 0))
@@ -214,14 +247,14 @@ def batch_process_files(files_to_process: List[Path], password: str, action: str
              print(f"DEBUG INFO: Multiprocessing enabled. System has {total_cores} cores. Configured to use {workers}.")
         tasks = [(str(f), password, action, config, False) for f in files_to_process]
         try:
-            with multiprocessing.Pool(processes=workers) as pool, tqdm(total=len(tasks), desc=f"{action.capitalize()}ing batch", ascii=use_ascii) as pbar:
+            with multiprocessing.Pool(processes=workers) as pool, tqdm(total=len(tasks), desc=f"{action.capitalize()}ing batch", ascii=(config.get('progress_bar_style') == 'ascii')) as pbar:
                 for _ in pool.imap_unordered(worker_process_single_file, tasks):
                     pbar.update(1)
         except Exception as e:
             print(f"An error occurred during multiprocessing: {e}")
     else:
         if use_multiprocessing and not TQDM_AVAILABLE:
-            print("INFO: Multiprocessing requires 'tqdm' for progress tracking. Falling back to sequential processing.")
+            print("INFO: Multiprocessing requires 'tqdm'. Falling back to sequential processing.")
         print("INFO: Processing files sequentially.")
         for item in files_to_process:
             print("-" * 20)
@@ -237,7 +270,6 @@ def process_folder_in_place(path: Path, password: str, action: str, config: Dict
     batch_process_files(files_to_process, password, action, config)
 def create_and_encrypt_archive(path_str: str, password: str, config: Dict) -> None:
     start_time = time.time()
-    print("Initializing archive creation. This may take a while for large folders...")
     path_str, archive_contents_only = path_str.strip(), False
     clean_path_str = path_str
     if path_str.endswith(('/*','\\*')):
@@ -247,6 +279,12 @@ def create_and_encrypt_archive(path_str: str, password: str, config: Dict) -> No
     clean_path = Path(clean_path_str)
     if not clean_path.is_dir():
         print(f"❌ Error: Folder '{clean_path}' not found."); return
+    print("Initializing archive creation. This may take a while for large folders...")
+    files_to_add = [f for f in clean_path.rglob("*") if f.is_file()]
+    total_size = sum(f.stat().st_size for f in files_to_add)
+    required_space = int(total_size * 2.1) 
+    if not check_disk_space(required_space, clean_path.parent):
+        return
     double_encrypt = config.get('double_encryption_on_archive', 'no').lower() == 'yes'
     temp_dir, source_to_archive = None, clean_path
     try:
@@ -260,17 +298,12 @@ def create_and_encrypt_archive(path_str: str, password: str, config: Dict) -> No
             print("Temporary copy encrypted.")
         archive_base_name = clean_path.name or 'archive'
         archive_file = Path(f"{archive_base_name}.zip")
-        files_to_add = [f for f in source_to_archive.rglob("*") if f.is_file()]
-        total_size = sum(f.stat().st_size for f in files_to_add)
         use_ascii = config.get('progress_bar_style', 'unicode').lower() == 'ascii'
         with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
             with tqdm(total=total_size, unit='B', unit_scale=True, desc="Creating archive", leave=False, ascii=use_ascii) as pbar:
                 for file in files_to_add:
                     pbar.set_description(f"Archiving {file.name}")
-                    if archive_contents_only:
-                        arcname = file.relative_to(source_to_archive)
-                    else:
-                        arcname = file.relative_to(source_to_archive.parent)
+                    arcname = file.relative_to(source_to_archive.parent) if not archive_contents_only else file.relative_to(source_to_archive)
                     zipf.write(file, arcname)
                     pbar.update(file.stat().st_size)
         print(f"\nTemporary archive '{archive_file.name}' created.")
@@ -438,18 +471,8 @@ def handle_config_menu(config: Dict) -> None:
         print("❌ 'config.ini' not found.");input("\nPress Enter...");return
     print("-" * 45)
     if input("Press 'e' to edit, or any other key to return: ").lower() == 'e':
-        editor = None
-        if sys.platform == "win32": editor = "notepad"
-        elif sys.platform == "darwin": editor = "open -t"
-        else: editor = os.environ.get('EDITOR') or (shutil.which('nano') or shutil.which('vi'))
-        if editor:
-            print(f"Attempting to open '{config_path}' with '{editor}'...")
-            try:
-                os.system(f'"{editor}" "{config_path}"')
-                print("Config editor closed.")
-            except Exception as e: print(f"❌ Could not open editor: {e}")
-        else: print("❌ Could not find a suitable text editor.")
-        input("\nPress Enter to continue...")
+        open_file_in_editor(config_path)
+        input("\nConfig editor closed. Press Enter to continue...")
 def handle_debug_menu(config: Dict) -> None:
     title_suffix = get_title_suffix(config)
     while True:
@@ -529,7 +552,8 @@ def main() -> None:
         else: print("Invalid selection."); input("\nPress Enter...")
 
 if __name__ == "__main__":
-    multiprocessing.freeze_support()
+    if sys.platform != "win32":
+        multiprocessing.set_start_method('spawn', force=True)
     try:
         main()
     except KeyboardInterrupt:
