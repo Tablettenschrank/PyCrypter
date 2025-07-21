@@ -2,3 +2,4 @@ test
 test_suite
 *test*
 */__pycache__
+.spec*

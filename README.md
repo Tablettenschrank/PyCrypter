@@ -91,7 +91,7 @@ If you want to run the tool directly from its source code:
 To package the application into a single `.exe` file for distribution, use `PyInstaller`. Run the following command from the project's root directory:
 
 ```bash
-pyinstaller --name PyCrypter --onefile --add-data "config.ini;." main.py
+pyinstaller --name PyCrypter --onefile main.py
 ```
 - `--name PyCrypter`: Sets the name of the final executable to `PyCrypter.exe`.
 - `--onefile`: Bundles everything into a single file.
