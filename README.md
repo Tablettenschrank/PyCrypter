@@ -6,7 +6,7 @@ This is a command-line tool for encrypting and decrypting your files, folders, a
 
 ## ⚠️ Project Status & Disclaimer
 
-> **Note:** This project is **Work In Progress (WIP)**. While the core features for encrypting and decrypting files, folders, and text are stable and work very well, new functionality is being planned and the code is subject to refactoring.
+> **Note:** This project is a **Work In Progress (WIP)**. While the core features for encrypting and decrypting files, folders, and text are stable and work very well, new functionality is being planned and the code is subject to refactoring.
 
 This project is a personal hobby project and serves as a practical environment for me to learn and improve skills in several key areas:
 - **Python Development:** Applying concepts from basic scripting to advanced topics like multiprocessing, streaming, and secure coding practices.
@@ -15,8 +15,6 @@ This project is a personal hobby project and serves as a practical environment f
 - **Testing & Debugging:** Actively finding and fixing bugs in an evolving codebase.
 
 The project was developed in close collaboration with an AI assistant (see Acknowledgments for more details). Always ensure you have backups of your important data.
-
-
 
 ---
 
@@ -37,6 +35,14 @@ The project was developed in close collaboration with an AI assistant (see Ackno
     * Clear progress bars for all long-running operations that show speed, progress, and estimated time remaining.
     * Highly configurable through the `config.ini` file.
     * Still works even if optional packages (`tqdm` for progress bars, `psutil` for system stats) are not installed.
+
+---
+
+## Platform Support
+
+This tool is developed using cross-platform Python libraries and is expected to run correctly on Windows, macOS, and Linux.
+
+Currently, it is primarily tested on Windows. Formal testing and packaging for macOS and Linux are planned for the future but are not a current priority.
 
 ---
 
@@ -80,6 +86,21 @@ If you want to run the tool directly from its source code:
     python main.py
     ```
 
+#### Building the Executable
+
+To package the application into a single `.exe` file for distribution, use `PyInstaller`. Run the following command from the project's root directory:
+
+```bash
+pyinstaller --name PyCrypter --onefile --add-data "config.ini;." main.py
+```
+- `--name PyCrypter`: Sets the name of the final executable to `PyCrypter.exe`.
+- `--onefile`: Bundles everything into a single file.
+- `--add-data "config.ini;."`: Crucially includes the `config.ini` file in the bundle.
+
+The final executable will be located in the `dist` folder.
+
+PyInstaller automatically detects that `main.py` imports modules from the `src` directory and will bundle them into the final executable. The final `.exe` will be located in the `dist` folder.
+
 ---
 
 ## Acknowledgments
@@ -104,7 +125,7 @@ Occasionally, especially on Windows, you might encounter a `[WinError 5] Access 
 - When encrypting a folder as an archive and choosing to delete the original folder.
 
 **Cause:**
-This is a common timing issue related to file system locks. The script performs many file operations very quickly. Sometimes, the operating system or a background process hasn't fully released its lock on the *directory itself* when the script attempts to delete it. This can result in a state where the files *inside* the folder are successfully deleted, but the script fails when trying to remove the now-empty parent folder.
+This is a common timing issue related to file system locks. The script performs many file operations very quickly. Sometimes, the operating system or a background process (like an antivirus scanner) hasn't fully released its lock on the *directory itself* when the script attempts to delete it. This can result in a state where the files *inside* the folder are successfully deleted, but the script fails when trying to remove the now-empty parent folder.
 
 **Solution / Workaround:**
 The program has a built-in retry mechanism that attempts to delete the folder several times. This **may sometimes resolve the timing issue, but it is not guaranteed**. If the error persists, the safest solution is to manually delete the folder after the script has finished its work.
