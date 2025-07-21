@@ -6,7 +6,7 @@ import multiprocessing
 from pathlib import Path
 from typing import Any, Dict
 
-# Importiere die Menü-Handler aus dem neuen 'src'-Paket
+# Importiere die Menü-Handler aus dem 'src'-Paket
 from src.cli import (
     handle_file_menu,
     handle_folder_menu,
@@ -33,7 +33,7 @@ def create_default_config(config_path: Path) -> None:
     """Creates a default config.ini file if it doesn't exist."""
     print("INFO: 'config.ini' not found. Creating a new one with default settings...")
     
-    # Der von dir bereitgestellte Inhalt für die Standard-Konfiguration
+    # GEÄNDERT: Der Inhalt der Standard-Konfiguration wurde aktualisiert.
     default_config_content = """
 [Settings]
 # Choose your preferred symmetric encryption algorithm for password-based encryption.
@@ -67,9 +67,9 @@ double_encryption_on_archive = no
 # Options: yes / no
 enable_multiprocessing = yes
 
-# Number of parallel processes to use.
-# 0 means use all available CPU cores, which is recommended.
-worker_processes = 0
+# Number of parallel processes to use. 
+# 0 means use all available CPU cores.
+worker_processes = 2
 
 # Chunk size in Kilobytes for reading large files.
 # A larger value can be slightly faster on fast drives (like SSDs) but uses more RAM.
@@ -77,7 +77,7 @@ worker_processes = 0
 # 4096 KB = 4 MB. This is a balanced default.
 chunk_size_kb = 8192
 
-# --- RSA Settings ---
+# --- RSA Settings --- NOT IMPLEMENTED YET
 
 # Default paths for RSA keys. Can be generated in the Key Management menu.
 default_public_key_path = public_key.pem
@@ -87,23 +87,30 @@ default_private_key_path = private_key.pem
 
 # Enable debug mode to bypass password strength checks for testing purposes.
 # WARNING: For testing only! Set to 'no' for real encryption.
-debug_mode = yes
+debug_mode = no
 
 [UI]
 # Style of the progress bar.
 # Options: unicode (modern style: ███), ascii (compatible style: ###)
 progress_bar_style = unicode
 
-# Select the user interface mode.
-# Options: cli (command-line, default), gui (graphical user interface)
+# Select the user interface mode. (NOT IMPLEMENTED YET)
+# Options: cli (command-line, default), gui (graphical user interface) 
 interface_mode = cli
 """
     try:
-        config_path.write_text(default_config_content.strip())
+        config_path.write_text(default_config_content.strip(), encoding='utf-8')
         print("✅ Default 'config.ini' created successfully.")
         time.sleep(2)
-    except Exception as e:
-        print(f"❌ Critical Error: Could not write to '{config_path}'. Please check permissions. Error: {e}")
+    except (UnicodeEncodeError, PermissionError) as e:
+        print(f"❌ Critical Error: Could not write to '{config_path}'. Error: {e}")
+        print("INFO: As a fallback, the configuration content will be saved to 'config.txt'.")
+        try:
+            fallback_path = config_path.with_name('config.txt')
+            fallback_path.write_text(default_config_content.strip(), encoding='ascii', errors='ignore')
+            print(f"✅ Fallback file '{fallback_path.name}' created. Please rename it to 'config.ini' to continue.")
+        except Exception as e2:
+            print(f"❌ Fallback also failed: {e2}")
         sys.exit(1)
 
 
@@ -119,7 +126,6 @@ def main() -> None:
     while True:
         try:
             config_path = Path('config.ini')
-            # GEÄNDERT: Überprüft, ob die config.ini existiert, und erstellt sie ggf.
             if not config_path.exists():
                 create_default_config(config_path)
 
@@ -139,23 +145,13 @@ def main() -> None:
         print("  [1] Category: Files\n  [2] Category: Folders\n  [3] Category: Text Messages\n  [7] View/Edit Config\n  [8] Debug/Analysis Tools\n  [9] Exit Program")
         print("-" * 45)
         choice = input("Select a category: ")
-
-        if choice == '1':
-            handle_file_menu(settings)
-        elif choice == '2':
-            handle_folder_menu(settings)
-        elif choice == '3':
-            handle_text_menu(settings)
-        elif choice == '7':
-            handle_config_menu(settings)
-        elif choice == '8':
-            handle_debug_menu(settings)
-        elif choice == '9':
-            print("Goodbye! 👋")
-            break
-        else:
-            print("Invalid selection.")
-            input("\nPress Enter...")
+        if choice == '1': handle_file_menu(settings)
+        elif choice == '2': handle_folder_menu(settings)
+        elif choice == '3': handle_text_menu(settings)
+        elif choice == '7': handle_config_menu(settings)
+        elif choice == '8': handle_debug_menu(settings)
+        elif choice == '9': print("Goodbye! 👋"); break
+        else: print("Invalid selection."); input("\nPress Enter...")
 
 if __name__ == "__main__":
     if sys.platform != "win32":
@@ -163,8 +159,7 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\nProgram terminated by user. 👋")
-        sys.exit(0)
+        print("\n\nProgram terminated by user. 👋"); sys.exit(0)
     except Exception as e:
         print(f"\n\nAn unexpected critical error occurred: {e}")
         sys.exit(1)
