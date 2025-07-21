@@ -39,19 +39,40 @@ This is a personal hobby project that I work on in my spare time, so updates mig
 
 ---
 
-## Installation & Setup
+## 🚀 Installation & Usage
 
-1.  **Get the code:**
-    Clone the repository or download the ZIP file.
+This tool can be used in two ways: by running the standalone executable (for most users) or by running the Python script directly (for developers).
 
-2.  **Install the packages:**
-    Open a terminal in the project folder and run:
+### The Easy Way (Recommended)
+
+This is the fastest way to use the tool without needing to install Python or any packages.
+
+1.  **Download:** Get the `PyCrypter.exe` (or the corresponding file for your OS) from the project's "Releases" page.
+2.  **Run:** Place the executable in any folder. The first time you run it, a default `config.ini` file will be created in the same folder.
+3.  **Usage:** Open your terminal (like `cmd` or PowerShell) in the same folder as the `.exe` file and run it by typing its name:
+    ```bash
+    # On Windows PowerShell
+    .\PyCrypter.exe
+
+    # On Windows CMD
+    PyCrypter.exe
+    ```
+    The interactive menu will then guide you through all options.
+
+### For Developers (Running from source)
+
+If you want to run the tool directly from its source code:
+
+1.  **Prerequisites:** Ensure you have Python 3.10+ installed.
+2.  **Clone:** Clone or download the repository.
+3.  **Install Dependencies:** Open a terminal in the project folder and run:
     ```bash
     pip install -r requirements.txt
     ```
-
-3.  **Configuration:**
-    The first time you run the program, it will automatically create a `config.ini` file with default settings if one isn't found. It's a good idea to look through this file and adjust it to your needs.
+4.  **Run:** Start the application with:
+    ```bash
+    python main.py
+    ```
 
 ---
 
