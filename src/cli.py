@@ -1,3 +1,4 @@
+# src/cli.py
 import glob
 import os
 import sys
@@ -5,11 +6,9 @@ import time
 from pathlib import Path
 from typing import Dict
 
-# Import from our own modules
 from . import core
 from . import utils
 
-# --- Menu Handlers ---
 def handle_file_menu(config: Dict) -> None:
     title_suffix = utils.get_title_suffix(config)
     while True:
@@ -61,13 +60,11 @@ def handle_folder_menu(config: Dict) -> None:
             action='encrypt'if choice == '1' else'decrypt'
             path = Path(input("Path to folder: "))
             if path.is_dir():
-                if pwd := utils.get_password(config, confirm=(action=='encrypt')):
-                    core.process_folder_in_place(path, pwd, action, config)
+                if pwd := utils.get_password(config, confirm=(action=='encrypt')): core.process_folder_in_place(path, pwd, action, config)
             else: print("❌ Invalid folder path.")
         elif choice == '3':
             path_str = input("Path to folder (e.g., 'docs' or 'docs/*'): ")
-            if pwd := utils.get_password(config):
-                core.create_and_encrypt_archive(path_str, pwd, config)
+            if pwd := utils.get_password(config): core.create_and_encrypt_archive(path_str, pwd, config)
         elif choice == '4':
             path = Path(input("Path to encrypted archive: "))
             if path.is_file():
@@ -130,11 +127,17 @@ def handle_config_menu(config: Dict) -> None:
 
 def handle_debug_menu(config: Dict) -> None:
     title_suffix = utils.get_title_suffix(config)
+    is_debug = config.get('debug_mode', 'no').lower() == 'yes'
     while True:
         os.system('cls'if os.name == 'nt' else 'clear');
         print(f"--- Category: Debug/Analysis Tools ---{title_suffix}")
-        print("  [1] Read metadata from encrypted file\n  [2] Verify file checksum (SHA256/512)\n  [9] Back to main menu")
+        print("  [1] Read metadata from encrypted file")
+        print("  [2] Verify file checksum (SHA256/512)")
+        if is_debug:
+            print("  [3] Run Automated Test Suite")
+        print("  [9] Back to main menu")
         choice = input("> ")
+
         if choice == '1':
             path = Path(input("Path to encrypted file: "))
             core.read_file_metadata(path)
@@ -152,6 +155,8 @@ def handle_debug_menu(config: Dict) -> None:
                         print(f"  > Calculated: {calculated_hash}\n  > Expected:   {expected_hash}")
                         if calculated_hash == expected_hash: print("\n✅ Match! The file is not corrupted.")
                         else: print("\n❌ MISMATCH! The file may be corrupted or has been altered.")
+        elif choice == '3' and is_debug:
+            core.run_test_suite(config)
         elif choice == '9': break
         else: print("Invalid selection.")
         input("\nPress Enter to continue...")

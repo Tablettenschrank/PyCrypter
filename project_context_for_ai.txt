@@ -1,0 +1,129 @@
+# Project Handover Document for AI Development Assistant
+
+---------------------------------
+## 1. Project Overview
+---------------------------------
+
+The project is a cross-platform command-line encryption tool named "PyCrypter", written in Python. Its primary purpose is to provide a secure, robust, and user-friendly way for a security-conscious individual to encrypt and decrypt their personal files, folders, and text messages. The project has evolved from a single script into a modular, multi-file application with a focus on security best practices, performance for large files, and user control.
+
+The primary user communicates in German, but all code, comments, and project files must be in English.
+
+---------------------------------
+## 2. Core Technologies & Dependencies
+---------------------------------
+
+- Language: Python 3.10+
+- Core Cryptography: `cryptography` library (specifically `Fernet` for streaming and `PBKDF2HMAC` for key derivation).
+- Password Strength: `zxcvbn-python`
+- UI & UX: `tqdm` for progress bars.
+- System Info: `psutil` for CPU/RAM stats.
+- File System: `pathlib`
+- Parallel Processing: `multiprocessing`
+
+Dependencies File (`requirements.txt`):
+cryptography
+zxcvbn-python
+tqdm
+psutil
+
+---------------------------------
+## 3. Current File Structure
+---------------------------------
+
+- main.py: The main entry point.
+- config.ini: User-configurable settings.
+- src/: The main source package.
+    - __init__.py: Marks `src` as a Python package.
+    - cli.py: Contains all UI logic (`handle_..._menu` functions).
+    - core.py: Orchestration layer. Contains high-level functions that execute tasks.
+    - crypto.py: Low-level cryptographic core.
+    - utils.py: Independent helper functions.
+    - rsa_utils.py: (To be implemented) Will contain all RSA key management logic.
+
+---------------------------------
+## 4. Design Philosophy & Architecture
+---------------------------------
+
+### Guiding Principles
+- **Security First:** No compromises on security. Use well-vetted, standard cryptographic libraries (`pyca/cryptography`). Avoid implementing custom crypto primitives. Employ strong key derivation (PBKDF2) and unique salts for every encryption.
+- **Data Integrity:** The original user data is paramount. No operation should ever delete an original file until the new, processed file has been successfully and completely written to disk.
+- **User Experience:** The tool should be intuitive for a command-line application. This is achieved through clear menus, detailed progress bars (`tqdm`), and informative error messages.
+- **Performance:** For batch operations, leverage modern hardware by using multiprocessing. For large files, use streaming to ensure low and constant memory usage.
+- **Platform Independence:** The tool must function correctly on Windows, macOS, and Linux.
+
+### Error Handling Strategy
+The program is designed to fail gracefully. Key anticipated errors are caught and handled with user-friendly messages:
+- `cryptography.fernet.InvalidToken`: The most common error. This is caught and reported to the user as a likely "Wrong password or corrupt file" issue. The partially decrypted (and useless) destination file is automatically cleaned up.
+- `PermissionError`: If a file is locked or the user lacks permissions, the operation on that file is aborted with a clear message.
+- `FileNotFoundError`: User-provided paths are checked with `is_file()` or `is_dir()` before use.
+- `KeyboardInterrupt`: A global handler ensures a clean exit message if the user presses Ctrl+C.
+
+---------------------------------
+## 5. Encrypted File Format Specification
+---------------------------------
+
+SYMMETRIC (PASSWORD-BASED) FILE FORMAT:
+[1 byte]   - Salt Size (S)
+[S bytes]  - The unique, random Salt
+[1 byte]   - Original Extension Size (E)
+[E bytes]  - Original Extension as UTF-8 bytes (e.g., b'.txt')
+---
+[4 bytes]  - Encrypted Chunk 1 Length (L1)
+[L1 bytes] - Encrypted Chunk 1 (Fernet Token)
+... and so on until the end of the file.
+
+---------------------------------
+## 6. Configuration (`config.ini`) Breakdown
+---------------------------------
+
+The `config.ini` file allows users to fine-tune the tool's behavior without editing the code.
+
+- **[Settings]**: General operational parameters.
+- **[Security Settings]**:
+    - `pbkdf2_iterations`: Critical security parameter. Higher values increase the time required for an attacker to brute-force a password. The default (600,000) is a strong, modern baseline.
+    - `double_encryption_on_archive`: An optional obfuscation layer, not a primary security feature.
+- **[Performance Features]**:
+    - `enable_multiprocessing`: A master switch for parallel processing.
+    - `worker_processes`: Controls the number of CPU cores to use. `0` is a special value that means "use all available cores".
+    - `chunk_size_kb`: A trade-off. Larger chunks can mean fewer disk I/O operations (faster on SSDs) but use more RAM per operation. Smaller chunks are lighter on RAM. The default is a balanced value.
+- **[Development Settings]**:
+    - `debug_mode`: Bypasses security features like password strength checking to speed up testing. It also enables verbose system stat monitoring.
+- **[UI]**:
+    - `progress_bar_style`: Allows choosing between a modern `unicode` bar and a legacy `ascii` bar for maximum terminal compatibility.
+
+---------------------------------
+## 7. Development History & Key Decisions
+---------------------------------
+
+This section contains the rationale for key architectural choices to give context to a new developer.
+
+- **Streaming Implementation:** The current streaming logic uses the high-level `Fernet` object on a per-chunk basis. While a lower-level streaming AEAD cipher (like AES-GCM) would be technically possible, it would require a much more complex custom implementation, as the `cryptography` library's official streaming APIs are not yet recommended for general use. The current `Fernet`-chunking approach provides a robust and secure solution for the large file problem.
+- **Multiprocessing vs. Threading:** `multiprocessing` was chosen over `threading` because encryption is a CPU-bound task. Due to Python's Global Interpreter Lock (GIL), threads would not achieve true parallelism for this workload. `multiprocessing` leverages multiple CPU cores effectively.
+- **`set_start_method('spawn')`:** This was explicitly added in the `__main__` block to prevent `resource_tracker` warnings about leaked semaphores on macOS and Linux, ensuring more stable cross-platform behavior.
+- **Rejection of GPU Acceleration:** The idea of using the GPU was rejected because the primary bottleneck for this application is disk I/O, not CPU computation. The overhead of transferring data to and from the GPU VRAM would likely make the process slower, and it would destroy the tool's platform independence by tying it to specific hardware (e.g., NVIDIA CUDA).
+
+---------------------------------
+## 8. Development Workflow & User Preferences
+---------------------------------
+
+- Communication Language: German.
+- Code Language: English.
+- Development Process: A "theory-first" approach is preferred for new features.
+- Code Delivery: The user prefers the full code for all modified files in each step.
+
+---------------------------------
+## 9. Current Project State & Roadmap
+---------------------------------
+
+- CURRENT STATE (Version 2.0): The password-based symmetric encryption tool is feature-complete and stable.
+- NEXT STEPS (THE ROADMAP):
+    1.  Hybrid RSA Encryption: The next planned feature.
+    2.  Graphical User Interface (GUI) using Qt.
+    3.  Packaging as a standalone executable using `PyInstaller`.
+
+---------------------------------
+## 10. Testing
+---------------------------------
+
+- CURRENT METHOD: Testing is performed manually by the user.
+- FUTURE GOAL: Implement a formal testing suite using `pytest`, including unit tests for core functions and integration tests for user workflows.
