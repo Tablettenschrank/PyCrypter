@@ -103,8 +103,20 @@ def encrypt_file_stream(source_path: Path, password: str, config: Dict, show_pro
                     f_out.write(encrypted_chunk)
         source_path.unlink()
         return encrypted_file_path
+    except PermissionError:
+        print(f"❌ Permission denied: {source_path.name}. Check file permissions.")
+        if encrypted_file_path.exists(): encrypted_file_path.unlink()
+        return None
+    except OSError as e:
+        print(f"❌ File system error: {source_path.name}. {e}")
+        if encrypted_file_path.exists(): encrypted_file_path.unlink()
+        return None
+    except MemoryError:
+        print(f"❌ Out of memory processing: {source_path.name}. Try smaller chunk size.")
+        if encrypted_file_path.exists(): encrypted_file_path.unlink()
+        return None
     except Exception as e:
-        print(f"❌ Encryption failed for {source_path.name}: {e}")
+        print(f"❌ Unexpected error: {source_path.name}. {type(e).__name__}: {e}")
         if encrypted_file_path.exists(): encrypted_file_path.unlink()
         return None
 
@@ -141,7 +153,15 @@ def decrypt_file_stream(source_path: Path, password: str, config: Dict, show_pro
         print(f"❌ Decryption failed for {source_path.name}. Wrong password or corrupt file.")
         if original_file_path and original_file_path.exists(): original_file_path.unlink()
         return None
+    except PermissionError:
+        print(f"❌ Permission denied: {source_path.name}. Check file permissions.")
+        if original_file_path and original_file_path.exists(): original_file_path.unlink()
+        return None
+    except OSError as e:
+        print(f"❌ File system error: {source_path.name}. {e}")
+        if original_file_path and original_file_path.exists(): original_file_path.unlink()
+        return None
     except Exception as e:
-        print(f"❌ An unexpected error with {source_path.name}: {e}")
+        print(f"❌ Unexpected error: {source_path.name}. {type(e).__name__}: {e}")
         if original_file_path and original_file_path.exists(): original_file_path.unlink()
         return None

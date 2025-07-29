@@ -1,7 +1,7 @@
 # src/utils.py
 import getpass
 import os
-import re # NEU
+import re
 import shutil
 import sys
 import subprocess
@@ -14,6 +14,72 @@ try:
 except ImportError:
     print("Error: 'zxcvbn' not found. Exiting.")
     sys.exit(1)
+
+# --- Path Validation ---
+def validate_file_path(path_str: str, must_exist: bool = True) -> Optional[Path]:
+    """Validate file path with comprehensive checks."""
+    try:
+        path = Path(path_str.strip()).resolve()
+        
+        # Check for empty input
+        if not path_str.strip():
+            print("❌ Empty path not allowed.")
+            return None
+            
+        # Check for invalid characters (basic security)
+        if any(char in str(path) for char in ['<', '>', '|', '\0']):
+            print("❌ Invalid characters in path.")
+            return None
+            
+        # Check path length (Windows compatibility)
+        if len(str(path)) > 260:
+            print("❌ Path too long (maximum 260 characters).")
+            return None
+            
+        if must_exist:
+            if not path.exists():
+                print(f"❌ Path does not exist: {path}")
+                return None
+            if not path.is_file():
+                print(f"❌ Path is not a file: {path}")
+                return None
+                
+        # Check permissions
+        parent = path.parent if not path.exists() else path
+        if not os.access(parent, os.R_OK | os.W_OK):
+            print(f"❌ No read/write permission: {path}")
+            return None
+            
+        return path
+    except (OSError, ValueError) as e:
+        print(f"❌ Invalid path: {e}")
+        return None
+
+def validate_directory_path(path_str: str) -> Optional[Path]:
+    """Validate directory path with comprehensive checks."""
+    try:
+        path = Path(path_str.strip()).resolve()
+        
+        if not path_str.strip():
+            print("❌ Empty path not allowed.")
+            return None
+            
+        if not path.exists():
+            print(f"❌ Directory does not exist: {path}")
+            return None
+            
+        if not path.is_dir():
+            print(f"❌ Path is not a directory: {path}")
+            return None
+            
+        if not os.access(path, os.R_OK | os.W_OK):
+            print(f"❌ No read/write permission: {path}")
+            return None
+            
+        return path
+    except (OSError, ValueError) as e:
+        print(f"❌ Invalid directory path: {e}")
+        return None
 
 # --- Helper Functions ---
 def parse_size_string(size_str: str) -> Optional[int]:

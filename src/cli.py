@@ -16,23 +16,21 @@ def handle_file_menu(config: Dict) -> None:
         print("  [1] Encrypt single file\n  [2] Decrypt single file\n  [3] Encrypt files by pattern\n  [9] Back to main menu")
         choice = input("> ")
         if choice == '1':
-            path = Path(input("Path to file: "))
-            if path.is_file():
+            path_input = input("Path to file: ")
+            if path := utils.validate_file_path(path_input):
                 if pwd := utils.get_password(config):
                     start_time = time.time()
                     core.process_single_file_main_thread(path, pwd, 'encrypt', config)
                     duration = time.time() - start_time
                     print(f"\n✅ Operation finished in {utils.format_duration(duration)}.")
-            else: print("❌ Invalid file path.")
         elif choice == '2':
-            path = Path(input("Path to encrypted file: "))
-            if path.is_file():
+            path_input = input("Path to encrypted file: ")
+            if path := utils.validate_file_path(path_input):
                 if pwd := utils.get_password(config, confirm=False):
                     start_time = time.time()
                     core.process_single_file_main_thread(path, pwd, 'decrypt', config)
                     duration = time.time() - start_time
                     print(f"\n✅ Operation finished in {utils.format_duration(duration)}.")
-            else: print("❌ Invalid file path.")
         elif choice == '3':
             pattern = input("Enter path pattern (e.g., 'data/*.txt' or 'project/**/*'): ")
             try:
@@ -58,25 +56,25 @@ def handle_folder_menu(config: Dict) -> None:
         choice = input("> ")
         if choice in ['1', '2']:
             action='encrypt'if choice == '1' else'decrypt'
-            path = Path(input("Path to folder: "))
-            if path.is_dir():
-                if pwd := utils.get_password(config, confirm=(action=='encrypt')): core.process_folder_in_place(path, pwd, action, config)
-            else: print("❌ Invalid folder path.")
+            path_input = input("Path to folder: ")
+            if path := utils.validate_directory_path(path_input):
+                if pwd := utils.get_password(config, confirm=(action=='encrypt')): 
+                    core.process_folder_in_place(path, pwd, action, config)
         elif choice == '3':
             path_str = input("Path to folder (e.g., 'docs' or 'docs/*'): ")
-            if pwd := utils.get_password(config): core.create_and_encrypt_archive(path_str, pwd, config)
+            if pwd := utils.get_password(config): 
+                core.create_and_encrypt_archive(path_str, pwd, config)
         elif choice == '4':
-            path = Path(input("Path to encrypted archive: "))
-            if path.is_file():
+            path_input = input("Path to encrypted archive: ")
+            if path := utils.validate_file_path(path_input):
                 if pwd := utils.get_password(config, confirm=False):
                     start_time = time.time()
                     core.process_single_file_main_thread(path, pwd, 'decrypt', config, unpack=True)
                     duration = time.time() - start_time
                     print(f"\n✅ Operation finished in {utils.format_duration(duration)}.")
-            else: print("❌ Invalid file path.")
         elif choice == '5':
-            path = Path(input("Path to double-encrypted archive: "))
-            if path.is_file():
+            path_input = input("Path to double-encrypted archive: ")
+            if path := utils.validate_file_path(path_input):
                 start_time = time.time()
                 print("\n--- Step 1: Decrypting the outer archive ---")
                 outer_pwd = utils.get_password(config, confirm=False, prompt_message="Enter password for the ARCHIVE file: ")

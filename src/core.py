@@ -130,7 +130,8 @@ def run_test_suite(config: Dict) -> None:
     test_suite_dir.mkdir()
     original_data_dir = test_suite_dir / "original_data"
     original_data_dir.mkdir()
-    password = "123"
+    # Use a more secure test password
+    password = "test123_secure_password"
     
     original_hashes = create_test_files(original_data_dir, num_files, min_size, max_size, config)
     if not original_hashes:

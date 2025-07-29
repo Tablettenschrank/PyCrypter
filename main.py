@@ -6,7 +6,7 @@ import multiprocessing
 from pathlib import Path
 from typing import Any, Dict
 
-# Importiere die Menü-Handler aus dem 'src'-Paket
+# Import the menu handlers from the 'src' package
 from src.cli import (
     handle_file_menu,
     handle_folder_menu,
@@ -16,7 +16,7 @@ from src.cli import (
 )
 from src.utils import get_title_suffix
 
-# Lade die optionalen Abhängigkeiten für die Startmeldung
+# Load optional dependencies for startup information
 try:
     from tqdm import tqdm
     TQDM_AVAILABLE = True
@@ -33,12 +33,12 @@ def create_default_config(config_path: Path) -> None:
     """Creates a default config.ini file if it doesn't exist."""
     print("INFO: 'config.ini' not found. Creating a new one with default settings...")
     
-    # GEÄNDERT: Der Inhalt der Standard-Konfiguration wurde aktualisiert.
+    # UPDATED: The default configuration content has been updated.
     default_config_content = """
 [Settings]
 # Choose your preferred symmetric encryption algorithm for password-based encryption.
-# Available options: fernet, aes-gcm
-default_algorithm = aes-gcm
+# Currently only 'fernet' is implemented. AES-GCM will be implemented in the future.
+default_algorithm = fernet
 
 # The file extension for your encrypted files.
 encrypted_file_extension = .tet
@@ -68,16 +68,16 @@ double_encryption_on_archive = no
 enable_multiprocessing = yes
 
 # Number of parallel processes to use. 
-# 0 means use all available CPU cores.
-worker_processes = 2
+# 0 means use all available CPU cores, which is recommended.
+worker_processes = 0
 
 # Chunk size in Kilobytes for reading large files.
 # A larger value can be slightly faster on fast drives (like SSDs) but uses more RAM.
 # A smaller value uses less RAM, which can be better for older systems.
-# 4096 KB = 4 MB. This is a balanced default.
+# 8192 KB = 8 MB. This is the current testing value (4 MB is the standard default).
 chunk_size_kb = 8192
 
-# --- RSA Settings --- NOT IMPLEMENTED YET
+# --- RSA Settings (IN PROGRESS - NOT IMPLEMENTED YET) ---
 
 # Default paths for RSA keys. Can be generated in the Key Management menu.
 default_public_key_path = public_key.pem
@@ -94,7 +94,7 @@ debug_mode = no
 # Options: unicode (modern style: ███), ascii (compatible style: ###)
 progress_bar_style = unicode
 
-# Select the user interface mode. (NOT IMPLEMENTED YET)
+# Select the user interface mode (IN PROGRESS - GUI NOT IMPLEMENTED YET).
 # Options: cli (command-line, default), gui (graphical user interface) 
 interface_mode = cli
 """
